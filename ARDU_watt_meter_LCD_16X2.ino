@@ -1,6 +1,20 @@
+// chapvox larumy aanalogi voterin petqa lini porti voltin havasr .delitel naprijeniov petqa stanas 4.9 volt analogi votin.asenq 50 volta .petqa ijacnes 4.9 volt
+
+
+
 
 #include <Wire.h>  // Библиотека для работы с I2C
 #include <LiquidCrystal_I2C.h> // Библиотека для работы с ЖК-дисплеем
+
+#include <Arduino.h>
+
+const int relayPin = 2;
+const int buttonPin = 3;
+
+bool relayActive = false;
+bool buttonState = false;
+bool prevButtonState = true;
+
 int a,b,c;
 long volt,current,power,ah;
 
@@ -13,10 +27,10 @@ float ampSeconds = 0.0;
 long ampHours = 0;
 
 
-int totalColumns = 16;
-int totalRows = 2;
 
-LiquidCrystal_I2C lcd(0x23, totalColumns, totalRows);  
+
+
+LiquidCrystal_I2C lcd(0x23, 16,2);  
 void setup()
 {
   lcd.init(); // Инициализация ЖК-дисплея
@@ -25,6 +39,9 @@ void setup()
   delay(1000);
   lcd.clear();
   Serial.begin(9600);
+  pinMode(relayPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  digitalWrite(relayPin, LOW);
 }
 
 
@@ -60,18 +77,25 @@ void loop()
 
  ampHours = ampSeconds/3600;
 
- //--------------
-  //  Serial.print(volt);
-   //   Serial.print("  ");
-     //   Serial.print(current);
-      //Serial.print("  ");
-        //Serial.print(power);
 
-        //Serial.print("  ");
-        //Serial.print(ampHours);
-        // Serial.print("  ");
-       // Serial.println(time);
-        
+ if (current > 400 && !relayActive) {
+    digitalWrite(relayPin, HIGH);
+    relayActive = true;
+  }
+  
+  if (buttonState == LOW && prevButtonState == HIGH) {
+    digitalWrite(relayPin, LOW);
+    relayActive = false;
+  }
+  
+  buttonState = digitalRead(buttonPin);
+  prevButtonState = buttonState;
+
+
+
+    
+   
+  
    lcd.setCursor(0,0);
    lcd.print("V:");
    b=volt%10;
@@ -89,6 +113,9 @@ void loop()
    lcd.setCursor(2,0);
    if(volt>999)lcd.print(b);
    else lcd.print(" ");
+
+
+
   
    lcd.setCursor(9,0);
    lcd.print("A:");
@@ -122,11 +149,16 @@ void loop()
   b=(power/100)%10;
   lcd.setCursor(3,1);
   lcd.print(b);
-  b=(power/1000)%10;
+  b=(power/100)%10;
   lcd.setCursor(2,1);
-  if(power>999)lcd.print(b);
+  if(current>99)lcd.print(b);
   else lcd.print(" ");
- 
+
+
+ if (relayActive) {
+  lcd.setCursor(0, 1); // Установка курсора в начало первой строки
+  lcd.print("Rely:ON "); // Вывод "Relay: ON", если реле активно
+}
   
    lcd.setCursor(9,1);
    lcd.print("H:");
@@ -145,8 +177,10 @@ void loop()
    lcd.setCursor(11,1);
    if(ampHours>999)lcd.print(b);
    else lcd.print(" ");
+
+
+   
  
- 
-  delay(500);
+  delay(300);
   
 }  
