@@ -1,4 +1,4 @@
-aporni naprijeniin havasar e borti vltin
+
 
 
  #include <ACS712.h>
@@ -23,8 +23,11 @@ aporni naprijeniin havasar e borti vltin
   float VOLTtotal = 0.0;
   float AMPtotal = 0.0;
   float voltcorect = 6.470;
-  float  ampcorrect = 110.0;
-  float amp_hours = 0; 
+  float  ampcorrect = 107.0;
+  float ampHours = 0.0;
+unsigned long previousMillis = 0;
+unsigned long interval = 3600; 
+  
    
    bool relayActive = false;
    bool buttonState = false;
@@ -63,8 +66,32 @@ aporni naprijeniin havasar e borti vltin
 }
 
 void AH_update(){
-   amp_hours += current / 3600.0;
+unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    float currentHours = AMPtotal / 3600.0;
+    ampHours += currentHours;
+    previousMillis = currentMillis;
+  }
+}
+
+void updatebutton() {
+if (AMPtotal > 5 && !relayActive) {
+    digitalWrite(relayPin, HIGH);
+    relayActive = true;
+  }
+  
+  if (buttonState == LOW && prevButtonState == HIGH) {
+    digitalWrite(relayPin, LOW);
+    relayActive = false;
+  }
+  
+  buttonState = digitalRead(buttonPin);
+  prevButtonState = buttonState;
+
+
  }
+
+
 
 
 void updateVoltage() {
@@ -96,35 +123,26 @@ void updatepower() {
 void updateEnergy(){
 
   lcd.setCursor(9, 1);
-  lcd.print("H//:");
-  lcd.print(amp_hours);
+  lcd.print("H:");
+  lcd.print(ampHours);
   lcd.print("     ");
 }
 
-void updatebutton() {
-if (AMPtotal > 4 && !relayActive) {
-    digitalWrite(relayPin, HIGH);
-    relayActive = true;
-  }
-  
-  if (buttonState == LOW && prevButtonState == HIGH) {
-    digitalWrite(relayPin, LOW);
-    relayActive = false;
-  }
-  
-  buttonState = digitalRead(buttonPin);
-  prevButtonState = buttonState;
-
-
- }
 
 
 void setup() {
   
   lcd.init(); 
   lcd.backlight(); 
+  lcd.setCursor(0, 0);
   lcd.print("Initializing...");
-  delay(500);
+  delay(800);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("-calibration-");
+  lcd.setCursor(2, 1);
+  lcd.print("sensors...");
+  delay(1200);
   lcd.clear();
   analogReference(DEFAULT); 
   pinMode(voltage_pin, INPUT);
