@@ -1,120 +1,157 @@
-
-#include <Wire.h>  // Библиотека для работы с I2C
-#include <LiquidCrystal_I2C.h> // Библиотека для работы с ЖК-дисплеем
-#include <ACS712.h> // Библиотека для работы с датчиком ACS712
+aporni naprijeniin havasar e borti vltin
 
 
-const int RESET_BUTTON_PIN = 6;
-const int acs712_pin = A0; // Пин для подключения датчика тока ACS712
-const int voltage_pin = A1; // Пин для измерения напряжения
+ #include <ACS712.h>
+ #include <Wire.h>
+ #include <LiquidCrystal_I2C.h>
 
 
-const float voltage_divider_ratio = 6.686; //  5.730Коэффициент делителя напряжения
-const float current_divider_ratio = 1.130;
+  LiquidCrystal_I2C lcd(0x23, 16, 2);
+  
+  const int  relayPin = 2;
+  const int  buttonPin = 3;
+  const int  voltage_pin  = A1 ;
+  const int  current_pin =  A0 ;
+  
+  ACS712 sensor(ACS712_20A, current_pin);
+
+  int  voltRead = 0;
+  int  ampRead = 0;
+  long current = 0.0;         
+  long voltage = 0.0;
+  float watt  = 0.0;
+  float VOLTtotal = 0.0;
+  float AMPtotal = 0.0;
+  float voltcorect = 6.470;
+  float  ampcorrect = 110.0;
+  float amp_hours = 0; 
+   
+   bool relayActive = false;
+   bool buttonState = false;
+   bool prevButtonState = true;
 
 
-int totalColumns = 16;
-int totalRows = 2;
-int buttonState = 0 ;
-
-ACS712 sensor(ACS712_20A, acs712_pin);
-LiquidCrystal_I2C lcd(0x23, totalColumns, totalRows);  
-
-
-String staticMessage = "--VOLTMETER--";
-String scrollingMessage = "VOLTMETER 0-30 VOLT 0-20 AMPER";
-
-
-float voltage = 0;
-float current = 0;
-float power = 0;
-float consumed_amp_hours = 0; 
-
-
-
-void scrollMessage(int row, String message, int delayTime, int totalColumns) {
-  for (int i=0; i < totalColumns; i++) {
-    message = " " + message;  
+ void volt_update() {
+  for(int i=0;i<200;i++) {
+  voltRead = analogRead(voltage_pin);
+  voltage += voltRead ;
+  delay(1);
   } 
-  message = message + " "; 
-  for (int position = 0; position < message.length(); position++) {
-    lcd.setCursor(0, row);
-    lcd.print(message.substring(position, position + totalColumns));
-    delay(delayTime);
-  }
-}
-
-
-void update_measurements() {
   
-  voltage = analogRead(voltage_pin) * (4.30 / 1023.0) * voltage_divider_ratio ; // Расчет напряжения
-  if (voltage <0.15){
-  voltage = 0 ;
-  }
-  current = sensor.getCurrentDC() * current_divider_ratio ; // Расчет тока
-  if (current <0.15){
-  current = 0 ;
-   }
-  power = voltage * current; // Расчет мощности
-  if (power <0.15){
-  power = 0 ;
-  }
-  consumed_amp_hours += current / 3600.0; // Расчет накопленных Ампер-часов
+   voltage = voltage / 200 ;
+   VOLTtotal = voltage *(4.90 / 1023);
+   VOLTtotal = VOLTtotal * voltcorect ;
+}
+  void amp_update(){
+  for(int i=0;i<200;i++) {
+  ampRead = sensor.getCurrentDC()*10;
+  current += ampRead ;
+  delay(1);
+  } 
+   
+   current = current / 200 ;
+   AMPtotal = current *(1.0 / 1023);
+   AMPtotal = AMPtotal * ampcorrect ;
+  
+ }
+   
+    void watt_update(){
+    for (int i = 0; i < 10; i++) {
+    watt = AMPtotal * VOLTtotal ;
+    delay(1);
+  } 
 }
 
+void AH_update(){
+   amp_hours += current / 3600.0;
+ }
 
-void print_lcd() {
-  lcd.setCursor(0,0);
+
+void updateVoltage() {
+  lcd.setCursor(0, 0);
   lcd.print("V:");
-  lcd.print(voltage, 2);
-  
-  lcd.setCursor(0,1);
-  lcd.print("I:");
-  lcd.print(current, 2);
-  
-  lcd.setCursor(8,0);
-  lcd.print("P:");
-  lcd.print(power, 2);
-  
-  lcd.setCursor(8,1);
-  lcd.print("Ah:");
-  lcd.print(consumed_amp_hours, 2);
- 
+  lcd.print(VOLTtotal);
+  lcd.print("     ");
 }
 
+ 
+void updateCurrent() {
+  lcd.setCursor(0, 1);
+  lcd.print("I:");
+  lcd.print(AMPtotal);
+  lcd.print("     ");
+  if (relayActive) {
+  lcd.setCursor(0, 1); 
+  lcd.print("Rely:ON "); 
+  }
+}
+ 
+void updatepower() {
+  lcd.setCursor(9, 0);
+  lcd.print("P:");
+  lcd.print(watt);
+  lcd.print("     ");
+}
+
+void updateEnergy(){
+
+  lcd.setCursor(9, 1);
+  lcd.print("H//:");
+  lcd.print(amp_hours);
+  lcd.print("     ");
+}
+
+void updatebutton() {
+if (AMPtotal > 4 && !relayActive) {
+    digitalWrite(relayPin, HIGH);
+    relayActive = true;
+  }
+  
+  if (buttonState == LOW && prevButtonState == HIGH) {
+    digitalWrite(relayPin, LOW);
+    relayActive = false;
+  }
+  
+  buttonState = digitalRead(buttonPin);
+  prevButtonState = buttonState;
+
+
+ }
 
 
 void setup() {
   
-  
-  pinMode(RESET_BUTTON_PIN, INPUT_PULLUP);
-  
-  
-  
-  lcd.init(); // Инициализация ЖК-дисплея
-  lcd.backlight(); // Включение подсветки ЖК-дисплея
-  lcd.setCursor(1, 0);
-  lcd.print(staticMessage);
-  scrollMessage(1, scrollingMessage, 150, totalColumns);
+  lcd.init(); 
+  lcd.backlight(); 
+  lcd.print("Initializing...");
   delay(500);
   lcd.clear();
-
-
-
-
-
+  analogReference(DEFAULT); 
+  pinMode(voltage_pin, INPUT);
+  pinMode(current_pin, INPUT);     
+  int zero = sensor.calibrate();
+  pinMode(relayPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  digitalWrite(relayPin, LOW);  
+    
+    
+    
 }
 
+
+
 void loop() {
- for(int i=0;i<200;i++)
- 
- buttonState = digitalRead(RESET_BUTTON_PIN);
-  if (buttonState == LOW) {
-    consumed_amp_hours = 0;
-  }
- 
+        
+        volt_update();
+        amp_update();
+        watt_update();
+        AH_update();
+        updateVoltage();
+        updateCurrent();
+        updatepower();
+        updateEnergy();
+        updatebutton();
   
-  update_measurements(); // Обновление измерений
-  print_lcd(); // Вывод данных на ЖК-дисплей
-  delay(1000);
+  delay(500);  
+  
 }
