@@ -1,5 +1,5 @@
-
-
+//input voltage via 10 kom voltage pin connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
+//  board arduino nano 
 
  #include <ACS712.h>
  #include <Wire.h>
