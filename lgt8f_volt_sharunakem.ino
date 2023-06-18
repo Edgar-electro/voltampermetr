@@ -1,42 +1,48 @@
 //input voltage via 10 kom voltage pin connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
-//  board arduino nano 
+//  board lgt8f328p
+
+
 
  #include <ACS712.h>
  #include <Wire.h>
  #include <LiquidCrystal_I2C.h>
 
 
-  LiquidCrystal_I2C lcd(0x23, 16, 2);
+ LiquidCrystal_I2C lcd(0x23, 16, 2);
 
 
-const int fanPin = 4; // Пин, к которому подключен вентилятор
-const int fanThreshold = 2; // Пороговое значение тока, при котором включается вентилятор (в миллиамперах)
-const unsigned long fanOffDelay   = 60000;
-bool fanOn = false; // Флаг, указывающий, что вентилятор включен
-unsigned long fanOffTime = 0;
-
-
+ 
+  const int fancurrdedect = 2;
+  const int fandelayoff = 120;
+  const unsigned long fanOffDelay  = fandelayoff * 1000;
   
+  bool fanOn = false; 
+  unsigned long fanOffTime = 0;
+
+
+  const int  fanPin       = 4;
   const int  relayPin     = 2;
   const int  buttonPin    = 3;
   const int  voltage_pin  = A1 ;
   const int  current_pin  = A0 ;
   const int  adc_bit      = 12 ;
+  
+  
   ACS712 sensor(ACS712_20A, current_pin);
 
-  int  voltRead = 0;
-  int  ampRead = 0;
-  long current = 0.0;         
-  long voltage = 0.0;
-  float watt  = 0.0;
+  int   voltRead    = 0;
+  int   ampRead     = 0;
+  long  current   = 0.0;         
+  long  voltage   = 0.0;
+  float watt      = 0.0;
   float VOLTtotal = 0.0;
-  float AMPtotal = 0.0;
-  float ampHours = 0.0;
+  float AMPtotal  = 0.0;
+  float ampHours  = 0.0;
   float voltcorect = 1.989;
   float  ampcorrect = 107.0;
   
-unsigned long previousMillis = 0;
-unsigned long interval = 3600; 
+  unsigned long previousMillis = 0;
+  unsigned long interval = 3600; 
   
   
    bool relayActive = false;
@@ -44,7 +50,45 @@ unsigned long interval = 3600;
    bool prevButtonState = true;
 
 
- void volt_update() {
+ 
+
+void setup() {
+  Serial.begin (115200);
+  
+  
+  analogReference(INTERNAL4V096); 
+  analogReadResolution (adc_bit);
+  
+  pinMode(voltage_pin, INPUT);
+  pinMode(current_pin, INPUT);     
+  
+  pinMode(relayPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(fanPin, OUTPUT);
+  digitalWrite(fanPin, LOW); 
+  delay(200);
+  
+  lcd.init(); 
+  lcd.backlight(); 
+  lcd.setCursor(0, 0);
+  lcd.print("Initializing...");
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("-calibration-");
+  lcd.setCursor(2, 1);
+  lcd.print("sensors...");
+  
+  int zero = sensor.calibrate();
+  
+  delay(1500);
+  lcd.clear();
+  
+  
+}
+
+
+void volt_update() {
   for(int i=0;i<200;i++) {
   voltRead = analogRead(voltage_pin);
   voltage += voltRead ;
@@ -89,13 +133,13 @@ unsigned long currentMillis = millis();
 void updatebutton() {
 buttonState = digitalRead(buttonPin);
 
-  // Если кнопка нажата и реле активно, выключаем реле
+  
   if (buttonState == LOW && prevButtonState == HIGH && relayActive) {
     digitalWrite(relayPin, LOW);
     relayActive = false;
   }
-
-  // Обновляем состояние предыдущей кнопки
+delay(10);
+  
   prevButtonState = buttonState;
 if (VOLTtotal > 5.0 && !relayActive) {
     digitalWrite(relayPin, HIGH);
@@ -109,13 +153,13 @@ if (VOLTtotal > 5.0 && !relayActive) {
 
 void fancontrol() {
   
-  if (VOLTtotal > fanThreshold) {
-    digitalWrite(fanPin, HIGH); // Включить вентилятор
+  if (VOLTtotal > fancurrdedect) {
+    digitalWrite(fanPin, HIGH); 
     fanOn = true;
-    fanOffTime = millis(); // Сбросить таймер выключения
+    fanOffTime = millis(); 
   } else {
     if (fanOn && (millis() - fanOffTime >= fanOffDelay)) {
-      digitalWrite(fanPin, LOW); // Выключить вентилятор
+      digitalWrite(fanPin, LOW); 
       fanOn = false;
     }
   }
@@ -126,31 +170,34 @@ void fancontrol() {
 
 void updateserial(){
 
-   Serial.print("VOLTtotal  ");
+   Serial.print("VOLTtotal   ");
    Serial.println(VOLTtotal);
-   delay(300);
+   delay(1000);
 
    Serial.print("AMPtotal   ");
    Serial.println(AMPtotal);
-   delay(300);
+   delay(1000);
   
-   Serial.print("watt       ");
+   Serial.print("POWE       ");
    Serial.println(watt);
-   delay(300);
+   delay(1000);
 
-   Serial.print("ampHours    ");
+   Serial.print("AmpHours   ");
    Serial.println(ampHours);
-   delay(300);
+   delay(1000);
 
    if (relayActive){
-   Serial.print("Rely:ON     ");
+   Serial.println("Rely:ON");
+   }else{ Serial.println("Rely:OFF");
    }
-   delay(300);
+   
+   delay(1000);
 
  if (fanOn){
-   Serial.print("Fan:ON    ");
+   Serial.println("Fan:ON");
+   }else{ Serial.println("Fan:OFF");
    }
-   delay(300);
+   delay(0);
   
   
  
@@ -195,56 +242,34 @@ void updateEnergy(){
 
 
 
-void setup() {
-  Serial.begin (115200);
-  
-  analogReadResolution (adc_bit);
-  analogReference(INTERNAL4V096); 
-  
-  lcd.init(); 
-  lcd.backlight(); 
-  lcd.setCursor(0, 0);
-  lcd.print("Initializing...");
-  delay(800);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("-calibration-");
-  lcd.setCursor(2, 1);
-  lcd.print("sensors...");
-  
-  int zero = sensor.calibrate();
-  
-  delay(1500);
-  lcd.clear();
-  
-  pinMode(voltage_pin, INPUT);
-  pinMode(current_pin, INPUT);     
-  
-  pinMode(relayPin, OUTPUT);
-  pinMode(buttonPin, INPUT_PULLUP);
-  pinMode(fanPin, OUTPUT);
-  digitalWrite(fanPin, LOW); 
-    
-    
-    
-}
 
 
 
 void loop() {
-        
+        delay(500);
         volt_update();
+        delay(10);
         amp_update();
+        delay(10);
         watt_update();
+        delay(10);
         AH_update();
+        delay(10);
         updateVoltage();
+        
         updateCurrent();
+        
         updatepower();
+        
         updateEnergy();
+        
         updatebutton();
+        delay(10);
         updateserial();
+        delay(10);
         fancontrol();
-  
-  delay(300);  
+        
+        delay(0);
+   
   
 }
