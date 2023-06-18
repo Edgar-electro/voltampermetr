@@ -1,7 +1,5 @@
 //input voltage via 10 kom voltage pin connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
-//  board lgt8f328p
-
-
+//  board arduino nano 
 
  #include <ACS712.h>
  #include <Wire.h>
@@ -208,17 +206,21 @@ void updateserial(){
 
 void updateVoltage() {
   lcd.setCursor(0, 0);
-  lcd.print("V:");
-  lcd.print(VOLTtotal);
-  lcd.print("     ");
+  lcd.print("V");
+  lcd.setCursor(1, 0);
+  lcd.print(":");
+  lcd.print(VOLTtotal );
+  lcd.print(" ");
 }
 
  
 void updateCurrent() {
   lcd.setCursor(0, 1);
-  lcd.print("I:");
-  lcd.print(AMPtotal);
-  lcd.print("     ");
+  lcd.print("I");
+  lcd.setCursor(1, 1);
+  lcd.print(":");
+  lcd.print(AMPtotal );
+  lcd.print(" ");
   if (relayActive) {
   lcd.setCursor(0, 1); 
   lcd.print("Rely:ON "); 
@@ -227,17 +229,21 @@ void updateCurrent() {
  
 void updatepower() {
   lcd.setCursor(9, 0);
-  lcd.print("P:");
-  lcd.print(watt);
-  lcd.print("     ");
+  lcd.print("P");
+  lcd.setCursor(10, 0);
+  lcd.print(":");
+  lcd.print(watt );
+  lcd.print(" ");
 }
 
 void updateEnergy(){
 
   lcd.setCursor(9, 1);
-  lcd.print("H:");
-  lcd.print(ampHours);
-  lcd.print("     ");
+  lcd.print("H");
+  lcd.setCursor(10, 1);
+  lcd.print(":");
+  lcd.print(ampHours );
+  lcd.print(" ");
 }
 
 
@@ -264,9 +270,9 @@ void loop() {
         updateEnergy();
         
         updatebutton();
-        delay(10);
+        
         updateserial();
-        delay(10);
+        
         fancontrol();
         
         delay(0);
