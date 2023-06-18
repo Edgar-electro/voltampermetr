@@ -1,8 +1,6 @@
 //input voltage via 10 kom voltage pin connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
 //  board arduino nano 
 
-
-
  #include <ACS712.h>
  #include <Wire.h>
  #include <LiquidCrystal_I2C.h>
@@ -107,19 +105,22 @@ unsigned long currentMillis = millis();
 }
 
 void updatebutton() {
-if (AMPtotal > 5 && !relayActive) {
-    digitalWrite(relayPin, HIGH);
-    relayActive = true;
-  }
+buttonState = digitalRead(buttonPin);
+
   
-  if (buttonState == LOW && prevButtonState == HIGH) {
+  if (buttonState == LOW && prevButtonState == HIGH && relayActive) {
     digitalWrite(relayPin, LOW);
     relayActive = false;
   }
+delay(10);
   
-  buttonState = digitalRead(buttonPin);
   prevButtonState = buttonState;
+if (AMPtotal > 5.0 && !relayActive) {
+    digitalWrite(relayPin, HIGH);
+    relayActive = true;
+  }
 
+  delay(100);
 
  }
 
