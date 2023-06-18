@@ -1,6 +1,8 @@
 //input voltage via 10 kom voltage pin connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
 //  board arduino nano 
 
+
+
  #include <ACS712.h>
  #include <Wire.h>
  #include <LiquidCrystal_I2C.h>
@@ -34,7 +36,37 @@ unsigned long interval = 3600;
    bool prevButtonState = true;
 
 
- void volt_update() {
+ 
+void setup() {
+  analogReference(DEFAULT); 
+  
+  pinMode(voltage_pin, INPUT);
+  pinMode(current_pin, INPUT);     
+  
+  pinMode(relayPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  
+  digitalWrite(relayPin, LOW);  
+  lcd.init(); 
+  lcd.backlight(); 
+  lcd.setCursor(0, 0);
+  lcd.print("Initializing...");
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("-calibration-");
+  lcd.setCursor(2, 1);
+  lcd.print("sensors...");
+  int zero = sensor.calibrate();
+  delay(1500);
+  lcd.clear();
+  
+    
+    
+    
+}
+
+void volt_update() {
   for(int i=0;i<200;i++) {
   voltRead = analogRead(voltage_pin);
   voltage += voltRead ;
@@ -96,70 +128,51 @@ if (AMPtotal > 5 && !relayActive) {
 
 void updateVoltage() {
   lcd.setCursor(0, 0);
-  lcd.print("V:");
-  lcd.print(VOLTtotal);
-  lcd.print("     ");
+  lcd.print("V");
+  lcd.setCursor(1, 0);
+  lcd.print(":");
+  lcd.print(VOLTtotal );
+  lcd.print(" ");
 }
 
  
 void updateCurrent() {
   lcd.setCursor(0, 1);
-  lcd.print("I:");
-  lcd.print(AMPtotal);
-  lcd.print("     ");
+  lcd.print("I");
+  lcd.setCursor(1, 1);
+  lcd.print(":");
+  lcd.print(AMPtotal );
+  lcd.print(" ");
   if (relayActive) {
   lcd.setCursor(0, 1); 
-  lcd.print("Rely:ON "); 
+  lcd.print("Rely:ON"); 
   }
 }
  
 void updatepower() {
   lcd.setCursor(9, 0);
-  lcd.print("P:");
-  lcd.print(watt);
-  lcd.print("     ");
+  lcd.print("P");
+  lcd.setCursor(10, 0);
+  lcd.print(":");
+  lcd.print(watt );
+  lcd.print(" ");
 }
 
 void updateEnergy(){
 
   lcd.setCursor(9, 1);
-  lcd.print("H:");
-  lcd.print(ampHours);
-  lcd.print("     ");
+  lcd.print("H");
+  lcd.setCursor(10, 1);
+  lcd.print(":");
+  lcd.print(ampHours );
+  lcd.print(" ");
 }
 
-
-
-void setup() {
-  
-  lcd.init(); 
-  lcd.backlight(); 
-  lcd.setCursor(0, 0);
-  lcd.print("Initializing...");
-  delay(800);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("-calibration-");
-  lcd.setCursor(2, 1);
-  lcd.print("sensors...");
-  delay(1200);
-  lcd.clear();
-  analogReference(DEFAULT); 
-  pinMode(voltage_pin, INPUT);
-  pinMode(current_pin, INPUT);     
-  int zero = sensor.calibrate();
-  pinMode(relayPin, OUTPUT);
-  pinMode(buttonPin, INPUT_PULLUP);
-  digitalWrite(relayPin, LOW);  
-    
-    
-    
-}
 
 
 
 void loop() {
-        
+        delay(500);  
         volt_update();
         amp_update();
         watt_update();
@@ -170,6 +183,6 @@ void loop() {
         updateEnergy();
         updatebutton();
   
-  delay(500);  
+  delay(0);  
   
 }
