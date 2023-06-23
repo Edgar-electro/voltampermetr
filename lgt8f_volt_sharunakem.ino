@@ -6,12 +6,12 @@
  #include <LiquidCrystal_I2C.h>
 
 
- LiquidCrystal_I2C lcd(0x23, 16, 2);
+ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 
  
   const int fancurrdedect = 2;
-  const int fandelayoff = 120;
+  const int fandelayoff = 120; //in secunds
   const unsigned long fanOffDelay  = fandelayoff * 1000;
   
   bool fanOn = false; 
@@ -23,7 +23,7 @@
   const int  buttonPin    = 3;
   const int  voltage_pin  = A1 ;
   const int  current_pin  = A0 ;
-  const int  adc_bit      = 12 ;
+  
   
   
   ACS712 sensor(ACS712_20A, current_pin);
@@ -36,8 +36,9 @@
   float VOLTtotal = 0.0;
   float AMPtotal  = 0.0;
   float ampHours  = 0.0;
-  float voltcorect = 1.989;
+  float voltcorect = 7.778; //1.989   8.100
   float  ampcorrect = 107.0;
+  const int  adc_bit  = 11 ;
   
   unsigned long previousMillis = 0;
   unsigned long interval = 3600; 
@@ -54,9 +55,9 @@ void setup() {
   Serial.begin (115200);
   
   
-  analogReference(INTERNAL4V096); 
+  analogReference(INTERNAL4V096); //   INTERNAL4V096
   analogReadResolution (adc_bit);
-  
+
   pinMode(voltage_pin, INPUT);
   pinMode(current_pin, INPUT);     
   
@@ -94,8 +95,8 @@ void volt_update() {
   } 
   
    voltage = voltage / 200 ;
-   VOLTtotal = voltage *(4.096 / 1023);
-   VOLTtotal = VOLTtotal * voltcorect ;
+   VOLTtotal = voltage *(4.096 / 2042);
+   VOLTtotal *=  voltcorect ;
 }
   
   
@@ -107,7 +108,7 @@ void volt_update() {
   } 
    
    current = current / 200 ;
-   AMPtotal = current *(4.096 / 1023);
+   AMPtotal = current *(4.096 / 2042);   
    AMPtotal = AMPtotal * ampcorrect ;
   
  }
@@ -139,7 +140,7 @@ buttonState = digitalRead(buttonPin);
 delay(10);
   
   prevButtonState = buttonState;
-if (VOLTtotal > 5.0 && !relayActive) {
+if (AMPtotal > 5.0 && !relayActive) {
     digitalWrite(relayPin, HIGH);
     relayActive = true;
   }
@@ -151,7 +152,7 @@ if (VOLTtotal > 5.0 && !relayActive) {
 
 void fancontrol() {
   
-  if (VOLTtotal > fancurrdedect) {
+  if (AMPtotal > fancurrdedect) {
     digitalWrite(fanPin, HIGH); 
     fanOn = true;
     fanOffTime = millis(); 
@@ -165,7 +166,7 @@ void fancontrol() {
 }
 
 
-
+/*
 void updateserial(){
 
    Serial.print("VOLTtotal   ");
@@ -201,7 +202,7 @@ void updateserial(){
  
 
 }
-
+*/
 
 
 void updateVoltage() {
@@ -219,7 +220,7 @@ void updateCurrent() {
   lcd.print("I");
   lcd.setCursor(1, 1);
   lcd.print(":");
-  lcd.print(AMPtotal );
+  lcd.print(voltage );
   lcd.print(" ");
   if (relayActive) {
   lcd.setCursor(0, 1); 
@@ -252,7 +253,7 @@ void updateEnergy(){
 
 
 void loop() {
-        delay(500);
+        
         volt_update();
         delay(10);
         amp_update();
@@ -271,11 +272,11 @@ void loop() {
         
         updatebutton();
         
-        updateserial();
+        
         
         fancontrol();
         
-        delay(0);
+       delay(300);
    
   
 }
