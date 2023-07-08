@@ -2,7 +2,7 @@
 
 
 
-
+#include <ACS712.h>
 #include <Wire.h>  // Библиотека для работы с I2C
 #include <LiquidCrystal_I2C.h> // Библиотека для работы с ЖК-дисплеем
 
@@ -30,6 +30,7 @@ long ampHours = 0;
 
 
 
+
 LiquidCrystal_I2C lcd(0x23, 16,2);  
 void setup()
 {
@@ -38,7 +39,7 @@ void setup()
   lcd.print("Initializing...");
   delay(1000);
   lcd.clear();
-  Serial.begin(9600);
+  
   pinMode(relayPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
   digitalWrite(relayPin, LOW);
@@ -78,7 +79,7 @@ void loop()
  ampHours = ampSeconds/3600;
 
 
- if (current > 400 && !relayActive) {
+ if (current > 500 && !relayActive) {
     digitalWrite(relayPin, HIGH);
     relayActive = true;
   }
@@ -146,12 +147,12 @@ void loop()
   lcd.print(b);
   lcd.setCursor(4,1);
   lcd.print(".");
-  b=(power/100)%10;
+  b=(power/10)%10;
   lcd.setCursor(3,1);
   lcd.print(b);
-  b=(power/100)%10;
+  b=(power/1000)%10;
   lcd.setCursor(2,1);
-  if(current>99)lcd.print(b);
+  if(current>999)lcd.print(b);
   else lcd.print(" ");
 
 
