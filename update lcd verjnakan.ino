@@ -1,7 +1,8 @@
 //input voltage via 10 kom.arduino read pin  connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
 //  board arduino nano 
-
- #include <ACS712.h>
+//arduino analog referanc pin connct to 3.3 volt arduino ..analog input voltage   maximum 3,28 volt
+ // karektirovka anel ..testerov chaper real voltag ev grel realVoltage dimac...serialov naem VOLTtotal ev grem measuredVoltage Измеренное напряжение dimac
+#include <ACS712.h>
  #include <Wire.h>
  #include <LiquidCrystal_I2C.h>
 
@@ -22,9 +23,9 @@
   float watt  = 0.0;
   float VOLTtotal = 0.0;
   float AMPtotal = 0.0;
-  float realVoltage = 19.99;     // Реальное напряжение, которое вы измерили (в вольтах)  stex poxem maxsimal volty testerov chapvac jisht volti masina xosqy
-  float measuredVoltage = 20.17; // Измеренное напряжение, которое Arduino показало (в вольтах)
-  float Maxviltage = 32.00;
+  float realVoltage = 20.01;     // 31.84Реальное напряжение, которое вы измерили (в вольтах)  stex poxem maxsimal volty testerov chapvac jisht volti masina xosqy
+  float measuredVoltage = 20.88; // 90  33.00 Измеренное напряжение, которое Arduino показало (в вольтах)
+  float Maxviltage = 33.00;
   float correctionFactor;        // Коэффициент коррекции
   float correctedVoltage;        // Скорректированное напряжение (в вольтах)
         
@@ -42,7 +43,7 @@ unsigned long interval = 3600;
  
 void setup() {
   Serial.begin(115200);
-  analogReference(DEFAULT); 
+  analogReference(EXTERNAL);  //  DEFAULT
   
   pinMode(voltage_pin, INPUT);
   pinMode(current_pin, INPUT);     
@@ -159,7 +160,7 @@ void updatebutton() {
 
     lastButtonCheckTime = currentTime;  // Обновляем время последней проверки кнопки
   }
- Serial.println(relayPin);
+ Serial.println(relayActive);
 }
 
 
@@ -298,8 +299,8 @@ void loop() {
   Serial.println(VOLTtotal);
   Serial.print(" Скорректированное напряжение: ");
   Serial.println(correctedVoltage);
-  Serial.print(" analog read: ");
-  Serial.println(voltRead);
+  //Serial.print(" analog read: ");
+ // Serial.println(voltRead);
  
   
 }
