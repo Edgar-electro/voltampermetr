@@ -1,8 +1,8 @@
-//input voltage via 10 kom.arduino read pin  connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
+//input voltage via 10 kom.arduino analog pin  connect potencometr  2 .. potencometr 1 pin gnd...potencometr 3 pin connect 10 kom  dis is highi voltage input 30 volt
 //  board arduino nano 
 //arduino analog referanc pin connct to 3.3 volt arduino ..analog input voltage   maximum 3,28 volt
  // karektirovka anel ..testerov chaper real voltag ev grel realVoltage dimac...serialov naem VOLTtotal ev grem measuredVoltage Измеренное напряжение dimac
-#include <ACS712.h>
+ #include <ACS712.h>
  #include <Wire.h>
  #include <LiquidCrystal_I2C.h>
 
@@ -23,13 +23,13 @@
   float watt  = 0.0;
   float VOLTtotal = 0.0;
   float AMPtotal = 0.0;
-  float realVoltage = 20.01;     // 31.84Реальное напряжение, которое вы измерили (в вольтах)  stex poxem maxsimal volty testerov chapvac jisht volti masina xosqy
-  float measuredVoltage = 20.88; // 90  33.00 Измеренное напряжение, которое Arduino показало (в вольтах)
-  float Maxviltage = 33.00;
+  float realVoltage = 20.03;     // 31.84Реальное напряжение, которое вы измерили (в вольтах)  stex poxem maxsimal volty testerov chapvac jisht volti masina xosqy
+  float measuredVoltage = 20.27; // 90  33.00 Измеренное напряжение, которое Arduino показало (в вольтах)
+  float Maxviltage = 32.00;
   float correctionFactor;        // Коэффициент коррекции
-  float correctedVoltage;        // Скорректированное напряжение (в вольтах)
-        
-  float  ampcorrect = 107.0;
+  float correctedVoltage ;        // Скорректированное напряжение (в вольтах)
+      
+  float  ampcorrect = 67.00;
   float ampHours = 0.0;
 unsigned long previousMillis = 0;
 unsigned long interval = 3600; 
@@ -72,61 +72,50 @@ void setup() {
 }
 
 void volt_update() {
-  unsigned long currentMillis = millis();
-  static unsigned long previousMillis = 0;
-  const int delayInterval = 1;  // Задержка в миллисекундах
-
-  if (currentMillis - previousMillis >= delayInterval) {
-    previousMillis = currentMillis;
-
-    for (int i = 0; i < 200; i++) {
+  
+    for (int i = 0; i < 150; i++) {
       voltRead = analogRead(voltage_pin);
       voltage += voltRead;
       // Здесь можно выполнять другие операции, если необходимо
     }
  
-   voltage = voltage / 200 ;
-   VOLTtotal = (voltage / 1023.0) * Maxviltage;  //stex poxem maxsimal volty testerov chapvac jisht volti masina xosqy
+   voltage = voltage / 150 ;
+   VOLTtotal = (voltage / 1025.0) * Maxviltage;  //stex poxem maxsimal volty testerov chapvac jisht volti masina xosqy
    correctionFactor = realVoltage / measuredVoltage;
    correctedVoltage = VOLTtotal * correctionFactor;
    
   
-  }
+  
 }
 
   
 
   void amp_update() {
-  unsigned long currentMillis = millis();
-  static unsigned long previousMillis = 0;
-  const int delayInterval = 1;  // Задержка в миллисекундах
+  
 
-  if (currentMillis - previousMillis >= delayInterval) {
-    previousMillis = currentMillis;
-
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 50; i++) {
       ampRead = sensor.getCurrentDC() * 10;
       current += ampRead;
-      // Здесь можно выполнять другие операции, если необходимо
+
     }
   
-   current = current / 200 ;
-   AMPtotal = current *(1.0 / 1023);
+   current = current / 50 ;
+   AMPtotal = current *(1.0 / 1025);
    AMPtotal = AMPtotal * ampcorrect ;
   
   
-  }
+  
 }
    
    
 
    
     void watt_update(){
-    for (int i = 0; i < 10; i++) {
-    watt = AMPtotal * correctedVoltage ;
-    
-  } 
-}
+   
+   watt = AMPtotal * correctedVoltage ;
+   
+   
+ }
 
 void AH_update(){
 unsigned long currentMillis = millis();
@@ -160,7 +149,7 @@ void updatebutton() {
 
     lastButtonCheckTime = currentTime;  // Обновляем время последней проверки кнопки
   }
- Serial.println(relayActive);
+ //Serial.println(relayActive);
 }
 
 
@@ -198,7 +187,7 @@ void updateVoltage() {
   // Выводим отдельные цифры на LCD
   lcd.setCursor(2, 0);  // Сдвигаем курсор, чтобы начать выводить после "V:"
   lcd.print(integerPart);
-  lcd.print(":");
+  lcd.print(".");
   if (decimalPart < 10) {
     lcd.print("0"); // Если десятичная часть меньше 10, добавляем ведущий ноль
   }
@@ -220,7 +209,7 @@ lcd.setCursor(0, 1);
   // Выводим отдельные цифры на LCD
   lcd.setCursor(2, 1);  // Сдвигаем курсор, чтобы начать выводить после "V:"
   lcd.print(integerPart);
-  lcd.print(":");
+  lcd.print(".");
   if (decimalPart < 10) {
     lcd.print("0"); // Если десятичная часть меньше 10, добавляем ведущий ноль
   }
@@ -245,7 +234,7 @@ void updateCurrent() {
   // Выводим отдельные цифры на LCD
   lcd.setCursor(11, 0);  // Сдвигаем курсор, чтобы начать выводить после "I:"
   lcd.print(integerPart);
-  lcd.print(":");
+  lcd.print(".");
   if (decimalPart < 10) {
     lcd.print("0"); // Если десятичная часть меньше 10, добавляем ведущий ноль
   }
@@ -269,7 +258,7 @@ lcd.setCursor(9, 1);
   // Выводим отдельные цифры на LCD
   lcd.setCursor(11, 1);  // Сдвигаем курсор, чтобы начать выводить после "I:"
   lcd.print(integerPart);
-  lcd.print(":");
+  lcd.print(".");
   if (decimalPart < 10) {
     lcd.print("0"); // Если десятичная часть меньше 10, добавляем ведущий ноль
   }
@@ -295,12 +284,13 @@ void loop() {
         updateEnergy();
         updatebutton();
         updatebuzzer();
-  Serial.print(" Измеренное напряжение: ");
-  Serial.println(VOLTtotal);
-  Serial.print(" Скорректированное напряжение: ");
+ // Serial.print(" Измеренное напряжение: ");
+   Serial.println(VOLTtotal);
+ // Serial.print(" Скорректированное напряжение: ");
   Serial.println(correctedVoltage);
   //Serial.print(" analog read: ");
- // Serial.println(voltRead);
- 
+  //Serial.println(voltRead); 
+ //Serial.print(" mijin read: ");
+   //Serial.println(voltage); 
   
 }
