@@ -43,7 +43,7 @@ unsigned long interval = 3600;
  
 void setup() {
   Serial.begin(115200);
-  analogReference(EXTERNAL);  //  DEFAULT
+  analogReference(EXTERNAL);  //  aref connect to 3.3 volt
   
   pinMode(voltage_pin, INPUT);
   pinMode(current_pin, INPUT);     
