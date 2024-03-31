@@ -3,28 +3,26 @@
 #include <SPI.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);  //(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x23, 16, 2);  //(0x27, 16, 2);
 
 
 const uint32_t SHUNT_MICRO_OHM = 100000;  ///< Сопротивление шунта в микроомах, например 100000 - это 0,1 Ом
 const uint16_t MAXIMUM_AMPS    = 10;       ///< Максимальное  измеряемое значение тока, значения 1 А - ограничено до 1022 А
 //INA_Class      INA;
 INA226_Class INA226;                      ///< INA class instantiation
-
-float  Temp_min = 25 ; // Минимальная температура при которой начнет работать ШИМ вентилятора.
-float  Temp_max = 50 ; // Температура при которой скорость вентилятора будет максимальной.
-//-------Здесь хранятся все переменные
 float  temperature = 0 ;
-float  V,A, W , mAh , Wh ;
-int   V_graf , A_graf , PWM_out ;
+float  Temp_min = 25 ; // Минимальная температура при которой начнет работать ШИМ вентилятора.
+float  Temp_max = 50 ; // Температура при которой скорость вентилятора будет максимальной
+float  V, A , W , mAh ;
 int   PWM = 0 ;
+
 unsigned long  new_Millis ;
 
-#define B 3950 // B-коэффициент
-#define SERIAL_R 100000 // сопротивление последовательного резистора, 100 кОм
-#define THERMISTOR_R 100000 // номинальное сопротивления термистора, 100 кОм
-#define NOMINAL_T 25 // номинальная температура (при которой TR = 100 кОм)
+
 const byte tempPin = A0;//  в новой варсии плати A1
+const byte  buzzerPin = 2;
+
+
 
 void setup() {
   Serial.begin(9600);
@@ -37,7 +35,7 @@ void setup() {
   TCCR2B = TCCR2B & 0b11111000 | 0x01;     //Включаем частоту ШИМ'а  вентилятора на ногах 3 и 11: 31250 Гц. Это позволит избавиться от неприятного писка в работе вентилятора.
 
   pinMode( tempPin, INPUT );
-  
+  pinMode(buzzerPin, OUTPUT); 
   INA226.begin(MAXIMUM_AMPS, SHUNT_MICRO_OHM);
   INA226.setBusConversion(8244);             // Время конверсии в микросекундах (140,204,332,588,1100,2116,4156,8244)8244µs=8.244 ms
   INA226.setShuntConversion(8244);           // Время конверсии в микросекундах (140,204,332,588,1100,2116,4156,8244)8244µs=8.244 ms
@@ -53,7 +51,9 @@ void setup() {
 
 }
 void loop() {
-  
+        
+        updatSensor();
+        
         updateVoltage();
         
         updateCurrent();
@@ -62,9 +62,14 @@ void loop() {
        
         updateEnergy();
   
-  //----- Расчет всех динамических данных.------
+        updatebuzzer();
+
+  }
+
+ void updatSensor()  {
+ //----- Расчет всех динамических данных.------
  V = INA226.getBusMilliVolts()/ 1000.000 ;
- A = INA226.getBusMicroAmps()/ 10000.000 * 21.48;
+ A = INA226.getBusMicroAmps()/ 10000.000 * 21.45;
  //W = INA226.getBusMicroWatts() / 10e5;
  W = V*A;
  if (V<0){V=0;}
@@ -72,55 +77,42 @@ void loop() {
     if (W<0){W=0;}
   mAh += A * (millis() - new_Millis) / 3600000 * 1000; //расчет емкости  в мАч
   new_Millis = millis();
-  
-  // Определяем температуру на датчике.
+ 
+ }
 
-  int t = analogRead( tempPin );
-  float tr = 1023.0 / t - 1;
-  tr = SERIAL_R / tr;
-  float temperature;
-  temperature = tr / THERMISTOR_R; // (R/Ro)
-  temperature = log(temperature); // ln(R/Ro)
-  temperature /= B; // 1/B * ln(R/Ro)
-  temperature += 1.0 / (NOMINAL_T + 273.15); // + (1/To)
-  temperature = 1.0 / temperature; // Invert
-  temperature -= 273.15;
-  //Рассчитываем  ШИМ вентилятора.
+void updatebuzzer() {
+
+ if (A > 6.5 && A < 7) {
+    blinkLED(4); // Моргаем светодиодом 4 раза
+  } else if (A > 7) {
+    blinkLED(5); // Моргаем светодиодом 5 раз
+  } else {
+    digitalWrite(buzzerPin, LOW); // Выключаем светодиод
+  }
+
+ 
+}
+
+void blinkLED(int times) {
+  for (int i = 0; i < times; i++) {
+    digitalWrite(buzzerPin, HIGH);
+    delay(100);
+    digitalWrite(buzzerPin, LOW);
+    delay(100);
+  }
+
+}
+
+void updatshim()  {
+ //int temperature = analogRead( tempPin );
+//Рассчитываем  ШИМ вентилятора.
   if (temperature >= Temp_min && temperature <= Temp_max )  {
     PWM = ( temperature - Temp_min ) * 255 / ( Temp_max - Temp_min ); }
   else if (temperature < Temp_min)  { PWM = 0;}
   else if (temperature >= Temp_max)  {PWM = 255;}
-
+    //analogWrite(3, PWM);   
   //PWM = map(temperature,Temp_min, Temp_max, 30, 255);
-
-
-  
- 
-
-    
-  
-  
- 
-  //Serial.print("Temperature");
-   // Serial.println(temperature);
-   /* Serial.print   ("  A " );
-    Serial.print   ( A  , 4 );
-    Serial.print   ("  V " );
-    Serial.print   (  V , 3);
-    Serial.print   ("  W_ina " );
-    Serial.print   ( W  , 4 );
-    Serial.print   ("  W=V*A " );
-    Serial.print   ( A*V  , 4 );
-    Serial.print   ( "   % "  );
-    Serial.println ((W/(V*A))*100 );
-    */
-    Serial.println   ( temperature  );
-     Serial.println   (PWM  );
-   // Serial.print   ( INA226.getBusMicroAmps() );
-  analogWrite(3, PWM);
-  delay (10);
 }
-
 
 void updateVoltage() {
   lcd.setCursor(0, 0);
@@ -128,7 +120,7 @@ void updateVoltage() {
   lcd.setCursor(1, 0);
   lcd.print(":");
   lcd.print(V);
-  lcd.print(" ");
+  lcd.print("   ");
 }
 
  
@@ -138,7 +130,7 @@ void updatepower() {
   lcd.setCursor(1, 1);
   lcd.print(":");
   lcd.print(W);     
-  lcd.print(" ");
+  lcd.print("   ");
   
 }
  
@@ -148,7 +140,7 @@ void updateCurrent() {
   lcd.setCursor(10, 0);
   lcd.print(":");
   lcd.print(A );
-  lcd.print(" ");
+  lcd.print("   ");
  
  }
 
@@ -159,5 +151,5 @@ void updateEnergy(){
   lcd.setCursor(10, 1);
   lcd.print(":");
   lcd.print(mAh);
-  lcd.print(" ");
+  lcd.print("   ");
 }
